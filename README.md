@@ -156,13 +156,4 @@ AIVIDEOGEN/
 
 ---
 
-## 📝 License
 
-This project is licensed under the MIT License. See the **LICENSE** file for details, including full credit to Arabian AI School.
-
----
-
-*Thank you For questions or support, reach out on our social channels or email: arabianaischool@gmail.com
-
-```
-```
