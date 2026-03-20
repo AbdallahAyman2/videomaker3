@@ -39,13 +39,10 @@ def _make_stub(name):
 for _name in (
     "moviepy",
     "moviepy.config",
-    "moviepy.editor",
     "moviepy.video",
     "moviepy.video.fx",
-    "moviepy.video.fx.loop",
     "moviepy.audio",
     "moviepy.audio.fx",
-    "moviepy.audio.fx.all",
     "googletrans",
     "tqdm",
     "PIL",
@@ -83,39 +80,45 @@ sys.modules["googletrans"].Translator = _FakeTranslator  # type: ignore
 # moviepy.config stub (used by server.py)
 _mpy_config = sys.modules["moviepy.config"]
 _mpy_config.FFMPEG_BINARY = "ffmpeg"  # type: ignore
-_mpy_config.IMAGEMAGICK_BINARY = "convert"  # type: ignore
+# IMAGEMAGICK_BINARY was removed in moviepy v2; server.py guards with hasattr
 
-# moviepy.editor stubs (used by video_creation.py)
+# moviepy stubs (used by video_creation.py – v2.x API: imports from moviepy directly)
 class _FakeClip:
     duration = 1.0
     w = 1080
     h = 1920
     audio = None
     def __init__(self, *a, **kw): pass
-    def resize(self, *a, **kw): return self
-    def set_audio(self, *a, **kw): return self
-    def set_position(self, *a, **kw): return self
-    def subclip(self, *a, **kw): return self
-    def fx(self, *a, **kw): return self
-    def crop(self, *a, **kw): return self
-    def fadein(self, *a, **kw): return self
-    def volumex(self, *a, **kw): return self
+    def resized(self, *a, **kw): return self
+    def with_audio(self, *a, **kw): return self
+    def with_position(self, *a, **kw): return self
+    def subclipped(self, *a, **kw): return self
+    def with_effects(self, *a, **kw): return self
+    def transform(self, *a, **kw): return self
+    def with_volume_scaled(self, *a, **kw): return self
     def close(self): pass
 
-_mpy_editor = sys.modules["moviepy.editor"]
-_mpy_editor.ImageClip = _FakeClip  # type: ignore
-_mpy_editor.VideoFileClip = _FakeClip  # type: ignore
-_mpy_editor.AudioFileClip = _FakeClip  # type: ignore
-_mpy_editor.ColorClip = _FakeClip  # type: ignore
-_mpy_editor.CompositeVideoClip = _FakeClip  # type: ignore
-_mpy_editor.CompositeAudioClip = _FakeClip  # type: ignore
-_mpy_editor.concatenate_videoclips = lambda clips, **kw: _FakeClip()  # type: ignore
+_mpy = sys.modules["moviepy"]
+_mpy.ImageClip = _FakeClip  # type: ignore
+_mpy.VideoFileClip = _FakeClip  # type: ignore
+_mpy.AudioFileClip = _FakeClip  # type: ignore
+_mpy.ColorClip = _FakeClip  # type: ignore
+_mpy.CompositeVideoClip = _FakeClip  # type: ignore
+_mpy.CompositeAudioClip = _FakeClip  # type: ignore
+_mpy.concatenate_videoclips = lambda clips, **kw: _FakeClip()  # type: ignore
 
-# moviepy.video.fx.loop stub
-sys.modules["moviepy.video.fx.loop"].loop = lambda clip, **kw: clip  # type: ignore
+# moviepy.video.fx stubs (Loop, FadeIn, Resize)
+class _FakeFx:
+    def __init__(self, *a, **kw): pass
 
-# moviepy.audio.fx.all stub
-sys.modules["moviepy.audio.fx.all"].audio_loop = lambda clip, **kw: clip  # type: ignore
+_mpy_vfx = sys.modules["moviepy.video.fx"]
+_mpy_vfx.Loop = _FakeFx  # type: ignore
+_mpy_vfx.FadeIn = _FakeFx  # type: ignore
+_mpy_vfx.Resize = _FakeFx  # type: ignore
+
+# moviepy.audio.fx stubs (AudioLoop)
+_mpy_afx = sys.modules["moviepy.audio.fx"]
+_mpy_afx.AudioLoop = _FakeFx  # type: ignore
 
 
 # ─────────────────────────────────────────────────────────────────────────────

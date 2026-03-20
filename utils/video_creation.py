@@ -4,7 +4,7 @@ import os
 import glob
 import re
 
-from moviepy.editor import (
+from moviepy import (
     ImageClip,
     VideoFileClip,
     AudioFileClip,
@@ -13,8 +13,8 @@ from moviepy.editor import (
     CompositeAudioClip,
     concatenate_videoclips,
 )
-from moviepy.video.fx.loop import loop as vfx_loop
-from moviepy.audio.fx.all import audio_loop as afx_loop
+from moviepy.video.fx import Loop as vfx_loop, FadeIn, Resize
+from moviepy.audio.fx import AudioLoop as afx_loop
 
 # Target dimensions for YouTube Shorts (9:16 vertical)
 TARGET_W = 1080
@@ -41,17 +41,19 @@ def _apply_effect(clip, effect: str | None):
     d = max(clip.duration, 0.001)
 
     if effect == "zoom":
-        clip = clip.resize(lambda t: 1.0 + 0.15 * t / d)
+        clip = clip.with_effects([Resize(lambda t: 1.0 + 0.15 * t / d)])
 
     elif effect == "pan":
         orig_w = clip.w
-        clip = clip.resize(width=int(orig_w * 1.2))
+        clip = clip.resized(width=int(orig_w * 1.2))
         pan_range = clip.w - orig_w
-        clip = clip.crop(x1=lambda t: int(pan_range * t / d), width=orig_w)
+        clip = clip.transform(
+            lambda gf, t: gf(t)[:, (x := int(pan_range * t / d)):x + orig_w]
+        )
 
     elif effect == "fade":
         fade_d = min(0.5, clip.duration * _FADE_FRACTION)
-        clip = clip.fadein(fade_d)
+        clip = clip.with_effects([FadeIn(fade_d)])
 
     else:
         print(f"[video_creation] Unknown effect {effect!r}; skipping.")
@@ -61,12 +63,12 @@ def _apply_effect(clip, effect: str | None):
 
 def _resize_clip(clip):
     """Resize a clip to fit within TARGET_W x TARGET_H, adding black bars if needed."""
-    clip = clip.resize(height=TARGET_H)
+    clip = clip.resized(height=TARGET_H)
     if clip.w > TARGET_W:
-        clip = clip.resize(width=TARGET_W)
+        clip = clip.resized(width=TARGET_W)
     bg = ColorClip(size=(TARGET_W, TARGET_H), color=[0, 0, 0], duration=clip.duration)
     return CompositeVideoClip(
-        [bg, clip.set_position("center")],
+        [bg, clip.with_position("center")],
         size=(TARGET_W, TARGET_H),
     )
 
@@ -179,13 +181,13 @@ def video_main(decisions: list[dict] | None = None) -> str:
                     loop_to = float(gemini_duration)
 
                 if vc.duration >= loop_to:
-                    vc = vc.subclip(0, loop_to)
+                    vc = vc.subclipped(0, loop_to)
                 else:
-                    vc = vc.fx(vfx_loop, duration=loop_to)
+                    vc = vc.with_effects([vfx_loop(duration=loop_to)])
 
                 # If we looped to a shorter window, repeat to fill audio
                 if loop_to < audio.duration:
-                    vc = vc.fx(vfx_loop, duration=audio.duration)
+                    vc = vc.with_effects([vfx_loop(duration=audio.duration)])
 
                 # Audio: muted (narration only) or mixed with original
                 if not mute:
@@ -195,25 +197,25 @@ def video_main(decisions: list[dict] | None = None) -> str:
                         if orig_audio is not None:
                             # Loop/trim original audio to match narration length
                             if orig_audio.duration < audio.duration:
-                                orig_audio = orig_audio.fx(afx_loop, duration=audio.duration)
+                                orig_audio = orig_audio.with_effects([afx_loop(duration=audio.duration)])
                             else:
-                                orig_audio = orig_audio.subclip(0, audio.duration)
+                                orig_audio = orig_audio.subclipped(0, audio.duration)
                             mixed = CompositeAudioClip(
-                                [orig_audio.volumex(0.2), audio.volumex(1.0)]
+                                [orig_audio.with_volume_scaled(0.2), audio.with_volume_scaled(1.0)]
                             )
-                            vc = vc.set_audio(mixed)
+                            vc = vc.with_audio(mixed)
                         else:
-                            vc = vc.set_audio(audio)
+                            vc = vc.with_audio(audio)
                         orig_vc.close()
                     except Exception as exc:
                         print(f"    Warning: could not mix original audio: {exc}")
-                        vc = vc.set_audio(audio)
+                        vc = vc.with_audio(audio)
                 else:
-                    vc = vc.set_audio(audio)
+                    vc = vc.with_audio(audio)
 
             else:
                 # Still image (.jpg / .png)
-                vc = ImageClip(media_path, duration=audio.duration).set_audio(audio)
+                vc = ImageClip(media_path, duration=audio.duration).with_audio(audio)
 
             vc = _apply_effect(vc, effect)
             vc = _resize_clip(vc)
