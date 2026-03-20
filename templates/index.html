@@ -36,6 +36,13 @@
         <option>أسماء</option>
       </select>
 
+      <label for="media_mode" style="display:block;margin-top:12px;font-weight:bold;">مصدر الوسائط:</label>
+      <select id="media_mode">
+        <option value="pollinations">🎨 Pollinations – صور مولّدة بالذكاء الاصطناعي (افتراضي)</option>
+        <option value="bing_scrape">🔎 Bing Scrape – مقاطع وصور من Bing (لا يحتاج مفتاح)</option>
+        <option value="search_apis">🔑 Search APIs – سلسلة بحث متعددة المزودين (Brave / Tavily / Serper / SerpApi / DuckDuckGo)</option>
+      </select>
+
       <button id="generate-btn">عمل فيديو</button>
     </div>
 
@@ -58,8 +65,9 @@
       logBox.textContent = '';
       const topic = document.getElementById('topic').value.trim();
       const voice = document.getElementById('voice').value;
+      const mediaMode = document.getElementById('media_mode').value;
       if (!topic) return alert('من فضلك أدخل فكرة الفيديو');
-      const res = await fetch(`/generate?topic=${encodeURIComponent(topic)}&voice_name=${encodeURIComponent(voice)}`);
+      const res = await fetch(`/generate?topic=${encodeURIComponent(topic)}&voice_name=${encodeURIComponent(voice)}&media_mode=${encodeURIComponent(mediaMode)}`);
       if (!res.ok) {
         const err = await res.json();
         alert(err.detail || 'خطأ');
