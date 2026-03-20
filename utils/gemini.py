@@ -1,21 +1,12 @@
+import os
 import requests
-import sys 
-import time
 
-try:
-    secret = open("gemini_secret.txt")
-except:
-    print("لم يتم العثور على مفتاح GEMINI. الرجاء تسمية الملف gemini_secret.txt")
-    print("قم بلصق المفتاح في الملف النصي")
-    print("سيتم الإغلاق خلال 5 ثوانٍ")
-    time.sleep(5)
-    sys.exit()
-API_KEY = secret.read().strip()
-if API_KEY == "":
-    print("مفتاح GEMINI فارغ")
-    print("سيتم الإغلاق خلال 5 ثوانٍ")
-    time.sleep(5)
-    sys.exit()
+API_KEY = os.environ.get("GEMINI_API_KEY", "")
+if not API_KEY:
+    raise RuntimeError(
+        "GEMINI_API_KEY environment variable is not set. "
+        "Please add it as a secret named GEMINI_API_KEY."
+    )
 
 URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + API_KEY
 
