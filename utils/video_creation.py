@@ -1,10 +1,8 @@
-# utils/video_creation.py
-
 import os
 import glob
 import re
 
-from moviepy import (
+from moviepy.editor import (
     ImageClip,
     VideoFileClip,
     AudioFileClip,
@@ -13,16 +11,14 @@ from moviepy import (
     CompositeAudioClip,
     concatenate_videoclips,
 )
-from moviepy.video.fx import Loop as vfx_loop, FadeIn, Resize
-from moviepy.audio.fx import AudioLoop as afx_loop
+from moviepy.video.fx.all import loop as vfx_loop, fadein as FadeIn, resize as Resize
+from moviepy.audio.fx.all import audio_loop as afx_loop
 
 # Target dimensions for YouTube Shorts (9:16 vertical)
 TARGET_W = 1080
 TARGET_H = 1920
 
-
 _FADE_FRACTION = 0.2   # fraction of clip duration used for fade-in
-
 
 def _apply_effect(clip, effect: str | None):
     """Apply an optional visual effect to *clip*.
@@ -41,44 +37,45 @@ def _apply_effect(clip, effect: str | None):
     d = max(clip.duration, 0.001)
 
     if effect == "zoom":
-        clip = clip.with_effects([Resize(lambda t: 1.0 + 0.15 * t / d)])
+        # Gradual zoom-in
+        def resize_func(t): return 1.0 + 0.15 * t / d
+        clip = Resize(resize_func)(clip)
 
     elif effect == "pan":
         orig_w = clip.w
-        clip = clip.resized(width=int(orig_w * 1.2))
-        pan_range = clip.w - orig_w
-        clip = clip.transform(
-            lambda gf, t: gf(t)[:, (x := int(pan_range * t / d)):x + orig_w]
-        )
+        pan_w = int(orig_w * 1.2)
+        clip = Resize(width=pan_w)(clip)
+        pan_range = pan_w - orig_w
+        def crop_func(get_frame, t):
+            x = int(pan_range * t / d)
+            return get_frame(t)[:, x:x+orig_w]
+        clip = clip.fl(crop_func, apply_to=['mask'])
 
     elif effect == "fade":
         fade_d = min(0.5, clip.duration * _FADE_FRACTION)
-        clip = clip.with_effects([FadeIn(fade_d)])
+        clip = FadeIn(fade_d)(clip)
 
     else:
         print(f"[video_creation] Unknown effect {effect!r}; skipping.")
 
     return clip
 
-
 def _resize_clip(clip):
     """Resize a clip to fit within TARGET_W x TARGET_H, adding black bars if needed."""
-    clip = clip.resized(height=TARGET_H)
+    clip = Resize(height=TARGET_H)(clip)
     if clip.w > TARGET_W:
-        clip = clip.resized(width=TARGET_W)
+        clip = Resize(width=TARGET_W)(clip)
     bg = ColorClip(size=(TARGET_W, TARGET_H), color=[0, 0, 0], duration=clip.duration)
     return CompositeVideoClip(
-        [bg, clip.with_position("center")],
+        [bg, clip.set_position("center")],
         size=(TARGET_W, TARGET_H),
     )
-
 
 def _sort_key(path):
     """Extract the numeric index from filenames like part0.jpg / part12.mp3."""
     name = os.path.splitext(os.path.basename(path))[0]
     m = re.search(r"(\d+)$", name)
     return int(m.group(1)) if m else 0
-
 
 def _find_media_files(outputs_dir: str) -> list:
     """
@@ -119,7 +116,6 @@ def _find_media_files(outputs_dir: str) -> list:
             _add(p)
 
     return [candidates[k] for k in sorted(candidates.keys())]
-
 
 def video_main(decisions: list[dict] | None = None) -> str:
     """
@@ -174,20 +170,18 @@ def video_main(decisions: list[dict] | None = None) -> str:
                 vc = VideoFileClip(media_path, audio=False)
 
                 # Determine how much of the source clip to show before looping.
-                # Gemini's duration hint may shorten the loop point, creating a
-                # repeating loop that keeps the action tight.
                 loop_to = audio.duration
                 if gemini_duration and gemini_duration < audio.duration:
                     loop_to = float(gemini_duration)
 
                 if vc.duration >= loop_to:
-                    vc = vc.subclipped(0, loop_to)
+                    vc = vc.subclip(0, loop_to)
                 else:
-                    vc = vc.with_effects([vfx_loop(duration=loop_to)])
+                    vc = vfx_loop(vc, duration=loop_to)
 
                 # If we looped to a shorter window, repeat to fill audio
                 if loop_to < audio.duration:
-                    vc = vc.with_effects([vfx_loop(duration=audio.duration)])
+                    vc = vfx_loop(vc, duration=audio.duration)
 
                 # Audio: muted (narration only) or mixed with original
                 if not mute:
@@ -197,25 +191,25 @@ def video_main(decisions: list[dict] | None = None) -> str:
                         if orig_audio is not None:
                             # Loop/trim original audio to match narration length
                             if orig_audio.duration < audio.duration:
-                                orig_audio = orig_audio.with_effects([afx_loop(duration=audio.duration)])
+                                orig_audio = afx_loop(orig_audio, duration=audio.duration)
                             else:
-                                orig_audio = orig_audio.subclipped(0, audio.duration)
+                                orig_audio = orig_audio.subclip(0, audio.duration)
                             mixed = CompositeAudioClip(
-                                [orig_audio.with_volume_scaled(0.2), audio.with_volume_scaled(1.0)]
+                                [orig_audio.volumex(0.2), audio.volumex(1.0)]
                             )
-                            vc = vc.with_audio(mixed)
+                            vc = vc.set_audio(mixed)
                         else:
-                            vc = vc.with_audio(audio)
+                            vc = vc.set_audio(audio)
                         orig_vc.close()
                     except Exception as exc:
                         print(f"    Warning: could not mix original audio: {exc}")
-                        vc = vc.with_audio(audio)
+                        vc = vc.set_audio(audio)
                 else:
-                    vc = vc.with_audio(audio)
+                    vc = vc.set_audio(audio)
 
             else:
                 # Still image (.jpg / .png)
-                vc = ImageClip(media_path, duration=audio.duration).with_audio(audio)
+                vc = ImageClip(media_path, duration=audio.duration).set_audio(audio)
 
             vc = _apply_effect(vc, effect)
             vc = _resize_clip(vc)
@@ -245,7 +239,6 @@ def video_main(decisions: list[dict] | None = None) -> str:
         c.close()
 
     return out_path
-
 
 if __name__ == "__main__":
     path = video_main()
