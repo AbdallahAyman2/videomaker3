@@ -23,6 +23,7 @@ voice_secret.txt
 # Generated outputs (videos, images, audio, text)
 outputs/images/
 outputs/audio/
+outputs/media/
 outputs/text.txt
 outputs/line_by_line.txt
 outputs/title.txt

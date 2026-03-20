@@ -46,7 +46,7 @@ print("Using ImageMagick:", imagemagick_path)
 # ───────────────────────────────────────────────────────────────────────────────
 out_base = os.path.join(os.getcwd(), "outputs")
 os.makedirs(out_base, exist_ok=True)
-for sub in ("images", "audio"):
+for sub in ("images", "audio", "media"):
     os.makedirs(os.path.join(out_base, sub), exist_ok=True)
 
 import threading
@@ -61,7 +61,7 @@ from starlette.responses import StreamingResponse
 
 from utils.gemini import query
 from utils.write_script import write_content, split_text_to_lines
-from utils.image_gen import image_main
+from utils.media_fetch import fetch_media_main
 from utils.voice_gen import voice_main
 from utils.video_creation import video_main
 
@@ -125,6 +125,8 @@ voice_options = {
     "أسماء": "qi4PkV9c01kb869Vh7Su",
 }
 
+VALID_MEDIA_MODES = {"pollinations", "bing_scrape", "search_apis"}
+
 # Per-connection SSE queues
 listeners: list[asyncio.Queue] = []
 
@@ -164,8 +166,9 @@ def broadcast(message: str):
 @app.get("/")
 async def get_form(request: Request):
     return templates.TemplateResponse(
+        request,
         "index.html",
-        {"request": request, "voice_options": list(voice_options.keys())},
+        {"voice_options": list(voice_options.keys())},
     )
 
 
@@ -191,28 +194,34 @@ async def download_video():
 async def generate_shorts(
     topic: str = Query(..., description="Video topic"),
     voice_name: str = Query(..., description="Voice name"),
+    media_mode: str = Query("pollinations", description="Media sourcing mode: pollinations | bing_scrape | search_apis"),
 ):
     topic = topic.strip()
     if not topic:
         raise HTTPException(status_code=400, detail="topic cannot be empty")
     if voice_name not in voice_options:
         raise HTTPException(status_code=400, detail="invalid voice_name")
+    if media_mode not in VALID_MEDIA_MODES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"invalid media_mode; allowed values: {sorted(VALID_MEDIA_MODES)}",
+        )
 
     voice_id = voice_options[voice_name]
     threading.Thread(
         target=run_pipeline,
-        args=(topic, voice_id),
+        args=(topic, voice_id, media_mode),
         daemon=True,
     ).start()
 
-    broadcast(f"▶️ بدأ إنشاء الفيديو للموضوع: «{topic}» بصوت «{voice_name}».")
-    return {"status": "started", "topic": topic, "voice": voice_name}
+    broadcast(f"▶️ بدأ إنشاء الفيديو للموضوع: «{topic}» بصوت «{voice_name}» (مصدر الوسائط: {media_mode}).")
+    return {"status": "started", "topic": topic, "voice": voice_name, "media_mode": media_mode}
 
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Full pipeline
 # ───────────────────────────────────────────────────────────────────────────────
-def run_pipeline(topic: str, voice_id: str):
+def run_pipeline(topic: str, voice_id: str, media_mode: str = "pollinations"):
     try:
         broadcast("1) توليد العنوان...")
         data = query(
@@ -237,9 +246,9 @@ def run_pipeline(topic: str, voice_id: str):
         split_text_to_lines()
         broadcast("6) حفظ line_by_line.txt.")
 
-        broadcast("7) توليد الصور...")
-        image_main()
-        broadcast("8) الصور جاهزة.")
+        broadcast(f"7) جلب الوسائط (mode={media_mode})...")
+        fetch_media_main(mode=media_mode)
+        broadcast("8) الوسائط جاهزة.")
 
         broadcast("9) توليد الصوت...")
         voice_main(voice_id=voice_id)

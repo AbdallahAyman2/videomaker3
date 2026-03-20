@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Ensure output directories exist
-RUN mkdir -p outputs/images outputs/audio
+RUN mkdir -p outputs/images outputs/audio outputs/media
 
 # HF Spaces requires port 7860
 EXPOSE 7860
