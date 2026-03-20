@@ -1,0 +1,167 @@
+Defaulting to user installation because normal site-packages is not writeable
+Collecting pytest
+  Downloading pytest-9.0.2-py3-none-any.whl.metadata (7.6 kB)
+Collecting moviepy
+  Downloading moviepy-2.2.1-py3-none-any.whl.metadata (6.9 kB)
+Collecting fastapi
+  Downloading fastapi-0.135.1-py3-none-any.whl.metadata (30 kB)
+Collecting uvicorn
+  Downloading uvicorn-0.42.0-py3-none-any.whl.metadata (6.7 kB)
+Requirement already satisfied: jinja2 in /usr/lib/python3/dist-packages (3.1.2)
+Collecting googletrans==4.0.0rc1
+  Downloading googletrans-4.0.0rc1.tar.gz (20 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting tqdm
+  Downloading tqdm-4.67.3-py3-none-any.whl.metadata (57 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.7/57.7 kB 15.8 MB/s eta 0:00:00
+Collecting imageio-ffmpeg
+  Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl.metadata (1.5 kB)
+Collecting numpy
+  Downloading numpy-2.4.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+Collecting beautifulsoup4
+  Downloading beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+Collecting lxml
+  Downloading lxml-6.0.2-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+Collecting duckduckgo-search
+  Downloading duckduckgo_search-8.1.1-py3-none-any.whl.metadata (16 kB)
+Requirement already satisfied: requests in /usr/lib/python3/dist-packages (2.31.0)
+Collecting Pillow
+  Downloading pillow-12.1.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (8.8 kB)
+Collecting httpx
+  Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+  Downloading httpx-0.13.3-py3-none-any.whl.metadata (25 kB)
+Requirement already satisfied: certifi in /usr/lib/python3/dist-packages (from httpx) (2023.11.17)
+Collecting hstspreload (from httpx)
+  Downloading hstspreload-2025.1.1-py3-none-any.whl.metadata (2.1 kB)
+Collecting sniffio (from httpx)
+  Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting chardet==3.* (from httpx)
+  Downloading chardet-3.0.4-py2.py3-none-any.whl.metadata (3.2 kB)
+Collecting idna==2.* (from httpx)
+  Downloading idna-2.10-py2.py3-none-any.whl.metadata (9.1 kB)
+Collecting rfc3986<2,>=1.3 (from httpx)
+  Downloading rfc3986-1.5.0-py2.py3-none-any.whl.metadata (6.5 kB)
+Collecting httpcore==0.9.* (from httpx)
+  Downloading httpcore-0.9.1-py3-none-any.whl.metadata (4.6 kB)
+Collecting h11<0.10,>=0.8 (from httpcore==0.9.*->httpx)
+  Downloading h11-0.9.0-py2.py3-none-any.whl.metadata (8.1 kB)
+Collecting h2==3.* (from httpcore==0.9.*->httpx)
+  Downloading h2-3.2.0-py2.py3-none-any.whl.metadata (32 kB)
+Collecting hyperframe<6,>=5.2.0 (from h2==3.*->httpcore==0.9.*->httpx)
+  Downloading hyperframe-5.2.0-py2.py3-none-any.whl.metadata (7.2 kB)
+Collecting hpack<4,>=3.0 (from h2==3.*->httpcore==0.9.*->httpx)
+  Downloading hpack-3.0.0-py2.py3-none-any.whl.metadata (7.0 kB)
+Collecting iniconfig>=1.0.1 (from pytest)
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Requirement already satisfied: packaging>=22 in /usr/lib/python3/dist-packages (from pytest) (24.0)
+Collecting pluggy<2,>=1.5 (from pytest)
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: pygments>=2.7.2 in /usr/lib/python3/dist-packages (from pytest) (2.17.2)
+Collecting decorator<6.0,>=4.0.2 (from moviepy)
+  Downloading decorator-5.2.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting imageio<3.0,>=2.5 (from moviepy)
+  Downloading imageio-2.37.3-py3-none-any.whl.metadata (9.7 kB)
+Collecting proglog<=1.0.0 (from moviepy)
+  Downloading proglog-0.1.12-py3-none-any.whl.metadata (794 bytes)
+Collecting python-dotenv>=0.10 (from moviepy)
+  Downloading python_dotenv-1.2.2-py3-none-any.whl.metadata (27 kB)
+Collecting Pillow
+  Downloading pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.0 kB)
+Collecting starlette>=0.46.0 (from fastapi)
+  Downloading starlette-0.52.1-py3-none-any.whl.metadata (6.3 kB)
+Collecting pydantic>=2.7.0 (from fastapi)
+  Downloading pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 90.6/90.6 kB 28.4 MB/s eta 0:00:00
+Requirement already satisfied: typing-extensions>=4.8.0 in /usr/lib/python3/dist-packages (from fastapi) (4.10.0)
+Collecting typing-inspection>=0.4.2 (from fastapi)
+  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting annotated-doc>=0.0.2 (from fastapi)
+  Downloading annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+Requirement already satisfied: click>=7.0 in /usr/lib/python3/dist-packages (from uvicorn) (8.1.6)
+Collecting soupsieve>=1.6.1 (from beautifulsoup4)
+  Downloading soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+Collecting click>=7.0 (from uvicorn)
+  Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting primp>=0.15.0 (from duckduckgo-search)
+  Downloading primp-1.1.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.7 kB)
+Collecting annotated-types>=0.6.0 (from pydantic>=2.7.0->fastapi)
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.41.5 (from pydantic>=2.7.0->fastapi)
+  Downloading pydantic_core-2.41.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+Collecting typing-extensions>=4.8.0 (from fastapi)
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting anyio<5,>=3.6.2 (from starlette>=0.46.0->fastapi)
+  Downloading anyio-4.12.1-py3-none-any.whl.metadata (4.3 kB)
+Downloading httpx-0.13.3-py3-none-any.whl (55 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 55.1/55.1 kB 17.4 MB/s eta 0:00:00
+Downloading chardet-3.0.4-py2.py3-none-any.whl (133 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.4/133.4 kB 39.3 MB/s eta 0:00:00
+Downloading httpcore-0.9.1-py3-none-any.whl (42 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.6/42.6 kB 11.9 MB/s eta 0:00:00
+Downloading idna-2.10-py2.py3-none-any.whl (58 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 58.8/58.8 kB 16.1 MB/s eta 0:00:00
+Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+Downloading h2-3.2.0-py2.py3-none-any.whl (65 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 65.0/65.0 kB 19.6 MB/s eta 0:00:00
+Downloading pytest-9.0.2-py3-none-any.whl (374 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 374.8/374.8 kB 45.4 MB/s eta 0:00:00
+Downloading moviepy-2.2.1-py3-none-any.whl (129 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 129.9/129.9 kB 44.1 MB/s eta 0:00:00
+Downloading fastapi-0.135.1-py3-none-any.whl (116 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 117.0/117.0 kB 37.0 MB/s eta 0:00:00
+Downloading uvicorn-0.42.0-py3-none-any.whl (68 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 68.8/68.8 kB 19.7 MB/s eta 0:00:00
+Downloading tqdm-4.67.3-py3-none-any.whl (78 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.4/78.4 kB 22.5 MB/s eta 0:00:00
+Downloading imageio_ffmpeg-0.6.0-py3-none-manylinux2014_x86_64.whl (29.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.5/29.5 MB 124.7 MB/s eta 0:00:00
+Downloading numpy-2.4.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 160.9 MB/s eta 0:00:00
+Downloading beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 107.7/107.7 kB 32.6 MB/s eta 0:00:00
+Downloading lxml-6.0.2-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.3/5.3 MB 174.1 MB/s eta 0:00:00
+Downloading duckduckgo_search-8.1.1-py3-none-any.whl (18 kB)
+Downloading pillow-11.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.6/6.6 MB 159.6 MB/s eta 0:00:00
+Downloading annotated_doc-0.0.4-py3-none-any.whl (5.3 kB)
+Downloading click-8.3.1-py3-none-any.whl (108 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 108.3/108.3 kB 34.3 MB/s eta 0:00:00
+Downloading decorator-5.2.1-py3-none-any.whl (9.2 kB)
+Downloading h11-0.9.0-py2.py3-none-any.whl (53 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 53.6/53.6 kB 13.0 MB/s eta 0:00:00
+Downloading imageio-2.37.3-py3-none-any.whl (317 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 317.6/317.6 kB 62.3 MB/s eta 0:00:00
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading primp-1.1.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (4.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.1/4.1 MB 145.6 MB/s eta 0:00:00
+Downloading proglog-0.1.12-py3-none-any.whl (6.3 kB)
+Downloading pydantic-2.12.5-py3-none-any.whl (463 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 463.6/463.6 kB 86.3 MB/s eta 0:00:00
+Downloading pydantic_core-2.41.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 150.9 MB/s eta 0:00:00
+Downloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)
+Downloading rfc3986-1.5.0-py2.py3-none-any.whl (31 kB)
+Downloading soupsieve-2.8.3-py3-none-any.whl (37 kB)
+Downloading starlette-0.52.1-py3-none-any.whl (74 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 74.3/74.3 kB 19.2 MB/s eta 0:00:00
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.6/44.6 kB 2.7 MB/s eta 0:00:00
+Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Downloading hstspreload-2025.1.1-py3-none-any.whl (1.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 111.4 MB/s eta 0:00:00
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading anyio-4.12.1-py3-none-any.whl (113 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 113.6/113.6 kB 32.0 MB/s eta 0:00:00
+Downloading hpack-3.0.0-py2.py3-none-any.whl (38 kB)
+Downloading hyperframe-5.2.0-py2.py3-none-any.whl (12 kB)
+Building wheels for collected packages: googletrans
+  Building wheel for googletrans (setup.py): started
+  Building wheel for googletrans (setup.py): finished with status 'done'
+  Created wheel for googletrans: filename=googletrans-4.0.0rc1-py3-none-any.whl size=17396 sha256=7f16f90694f102734c434f34ba6cbaab720eeaaeed94ad38b68c391a221107d5
+  Stored in directory: /home/runner/.cache/pip/wheels/95/0f/04/b17a72024b56a60e499ce1a6313d283ed5ba332407155bee03
+Successfully built googletrans
+Installing collected packages: rfc3986, hyperframe, hpack, h11, chardet, typing-extensions, tqdm, soupsieve, sniffio, python-dotenv, primp, pluggy, Pillow, numpy, lxml, iniconfig, imageio-ffmpeg, idna, hstspreload, h2, decorator, click, annotated-types, annotated-doc, uvicorn, typing-inspection, pytest, pydantic-core, proglog, imageio, httpcore, duckduckgo-search, beautifulsoup4, anyio, starlette, pydantic, moviepy, httpx, googletrans, fastapi
+Successfully installed Pillow-11.3.0 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.12.1 beautifulsoup4-4.14.3 chardet-3.0.4 click-8.3.1 decorator-5.2.1 duckduckgo-search-8.1.1 fastapi-0.135.1 googletrans-4.0.0rc1 h11-0.9.0 h2-3.2.0 hpack-3.0.0 hstspreload-2025.1.1 httpcore-0.9.1 httpx-0.13.3 hyperframe-5.2.0 idna-2.10 imageio-2.37.3 imageio-ffmpeg-0.6.0 iniconfig-2.3.0 lxml-6.0.2 moviepy-2.2.1 numpy-2.4.3 pluggy-1.6.0 primp-1.1.3 proglog-0.1.12 pydantic-2.12.5 pydantic-core-2.41.5 pytest-9.0.2 python-dotenv-1.2.2 rfc3986-1.5.0 sniffio-1.3.1 soupsieve-2.8.3 starlette-0.52.1 tqdm-4.67.3 typing-extensions-4.15.0 typing-inspection-0.4.2 uvicorn-0.42.0
