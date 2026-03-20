@@ -84,7 +84,7 @@ def _find_media_files(outputs_dir: str) -> list:
       2. outputs/media/part{i}.jpg  (image in new media dir)
       3. outputs/images/part{i}.jpg (legacy location)
 
-    Returns a sorted list of (index, file_path) pairs.
+    Returns a sorted list of file paths.
     """
     media_dir  = os.path.join(outputs_dir, "media")
     images_dir = os.path.join(outputs_dir, "images")
@@ -169,7 +169,6 @@ def video_main(decisions: list[dict] | None = None) -> str:
             if ext == ".mp4":
                 vc = VideoFileClip(media_path, audio=False)
 
-                # Determine how much of the source clip to show before looping.
                 loop_to = audio.duration
                 if gemini_duration and gemini_duration < audio.duration:
                     loop_to = float(gemini_duration)
@@ -179,17 +178,14 @@ def video_main(decisions: list[dict] | None = None) -> str:
                 else:
                     vc = vfx_loop(vc, duration=loop_to)
 
-                # If we looped to a shorter window, repeat to fill audio
                 if loop_to < audio.duration:
                     vc = vfx_loop(vc, duration=audio.duration)
 
-                # Audio: muted (narration only) or mixed with original
                 if not mute:
                     try:
                         orig_vc = VideoFileClip(media_path)
                         orig_audio = orig_vc.audio
                         if orig_audio is not None:
-                            # Loop/trim original audio to match narration length
                             if orig_audio.duration < audio.duration:
                                 orig_audio = afx_loop(orig_audio, duration=audio.duration)
                             else:
@@ -208,7 +204,6 @@ def video_main(decisions: list[dict] | None = None) -> str:
                     vc = vc.set_audio(audio)
 
             else:
-                # Still image (.jpg / .png)
                 vc = ImageClip(media_path, duration=audio.duration).set_audio(audio)
 
             vc = _apply_effect(vc, effect)
@@ -236,10 +231,4 @@ def video_main(decisions: list[dict] | None = None) -> str:
     # Release resources
     final.close()
     for c in clips:
-        c.close()
-
-    return out_path
-
-if __name__ == "__main__":
-    path = video_main()
-    print(f"Video saved to: {path}")
+        c
