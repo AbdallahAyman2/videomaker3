@@ -72,6 +72,10 @@ Set the following environment variables / secrets before running:
 3. In the Space **Settings → Secrets**, add all four secrets listed above.
 4. The app starts automatically on port **7860**.
 
+> **Note:** `moviepy` is pinned to `>=1.0.3,<2.0.0` in `requirements.txt` because
+> MoviePy 2.x removed the `moviepy.editor` module that this project uses.
+> Do **not** remove or loosen this pin.
+
 ---
 
 ## 🐙 Deploying to GitHub Codespaces (free tier)
