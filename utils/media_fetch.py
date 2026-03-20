@@ -4,6 +4,10 @@ Media fetching module supporting three modes:
   2. bing_scrape   - Bing web scraping (no API key required)
   3. search_apis  - Fallback chain: Brave → Tavily → Serper → SerpApi → DuckDuckGo
 
+When a list of per-segment Gemini decisions is supplied (via *decisions*),
+the provider and preferred media type from each decision is respected instead
+of applying the same *mode* to every segment.
+
 File outputs (per part index):
   outputs/media/part{i}.mp4  — downloaded video clip
   outputs/media/part{i}.jpg  — downloaded / generated image
@@ -182,19 +186,20 @@ def _bing_search_images(query: str) -> list:
         return []
 
 
-def _fetch_bing_scrape(prompt_en: str, part_idx: int, media_dir: str):
-    """
-    Try video first (Bing video search), then fallback to Bing image search.
-    Returns the saved file path (str) or None.
-    """
+def _fetch_bing_video_only(prompt_en: str, part_idx: int, media_dir: str):
+    """Try Bing video scrape only. Returns saved path or None."""
     print(f"    [bing_scrape] Searching videos for: {prompt_en[:60]}")
     for vurl in _bing_search_videos(prompt_en):
         dest = os.path.join(media_dir, f"part{part_idx}.mp4")
         if _download_file(vurl, dest, timeout=30):
             print(f"    [bing_scrape] Video downloaded: {vurl[:80]}")
             return dest
+    return None
 
-    print(f"    [bing_scrape] No video found – trying images...")
+
+def _fetch_bing_image_only(prompt_en: str, part_idx: int, media_dir: str):
+    """Try Bing image scrape only. Returns saved path or None."""
+    print(f"    [bing_scrape] Searching images for: {prompt_en[:60]}")
     for iurl in _bing_search_images(prompt_en):
         try:
             resp = requests.get(
@@ -208,8 +213,19 @@ def _fetch_bing_scrape(prompt_en: str, part_idx: int, media_dir: str):
         except Exception as exc:
             print(f"    Image download error: {exc}")
             continue
-
     return None
+
+
+def _fetch_bing_scrape(prompt_en: str, part_idx: int, media_dir: str):
+    """Try video first (Bing video search), then fallback to Bing image search.
+
+    Returns the saved file path (str) or None.
+    """
+    saved = _fetch_bing_video_only(prompt_en, part_idx, media_dir)
+    if saved:
+        return saved
+    print(f"    [bing_scrape] No video found – trying images...")
+    return _fetch_bing_image_only(prompt_en, part_idx, media_dir)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -407,12 +423,8 @@ _PROVIDER_CHAIN = [
 ]
 
 
-def _fetch_search_apis(prompt_en: str, part_idx: int, media_dir: str):
-    """
-    Try each provider for videos first, then images.
-    Returns the saved file path or None.
-    """
-    # --- Video pass ---
+def _fetch_search_apis_video_only(prompt_en: str, part_idx: int, media_dir: str):
+    """Try each API provider for a video only. Returns saved path or None."""
     for video_fn, _, name in _PROVIDER_CHAIN:
         try:
             print(f"    [search_apis] Trying video via {name}...")
@@ -427,8 +439,11 @@ def _fetch_search_apis(prompt_en: str, part_idx: int, media_dir: str):
             print(f"    [search_apis] {name} video unavailable: {exc}")
         except Exception as exc:
             print(f"    [search_apis] {name} video error: {exc}")
+    return None
 
-    # --- Image pass ---
+
+def _fetch_search_apis_image_only(prompt_en: str, part_idx: int, media_dir: str):
+    """Try each API provider for an image only. Returns saved path or None."""
     for _, image_fn, name in _PROVIDER_CHAIN:
         try:
             print(f"    [search_apis] Trying image via {name}...")
@@ -450,24 +465,123 @@ def _fetch_search_apis(prompt_en: str, part_idx: int, media_dir: str):
             print(f"    [search_apis] {name} image unavailable: {exc}")
         except Exception as exc:
             print(f"    [search_apis] {name} image error: {exc}")
-
     return None
+
+
+def _fetch_search_apis(prompt_en: str, part_idx: int, media_dir: str):
+    """Try each provider for videos first, then images.
+
+    Returns the saved file path or None.
+    """
+    saved = _fetch_search_apis_video_only(prompt_en, part_idx, media_dir)
+    if saved:
+        return saved
+    return _fetch_search_apis_image_only(prompt_en, part_idx, media_dir)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Per-segment dispatcher (Gemini-directed)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fetch_segment_with_decision(
+    part_idx: int,
+    prompt_en: str,
+    media_dir: str,
+    fallback_mode: str,
+    decision: dict | None,
+) -> str | None:
+    """Fetch media for one segment, honouring the Gemini per-segment decision.
+
+    Args:
+        part_idx:      segment index (used in output filename)
+        prompt_en:     English search/generation prompt
+        media_dir:     directory to save the file in
+        fallback_mode: global media mode used when *decision* is None
+        decision:      Gemini decision dict, or None for mode-based behaviour
+
+    Returns:
+        Saved file path or None.
+    """
+    if decision is None:
+        # Legacy behaviour: apply the global mode
+        if fallback_mode == "bing_scrape":
+            return _fetch_bing_scrape(prompt_en, part_idx, media_dir)
+        if fallback_mode == "search_apis":
+            return _fetch_search_apis(prompt_en, part_idx, media_dir)
+        # pollinations (default)
+        dest = os.path.join(media_dir, f"part{part_idx}.jpg")
+        return dest if _fetch_pollinations(prompt_en, dest) else None
+
+    desired_type = decision.get("type", "image")
+    provider = decision.get("provider", fallback_mode)
+
+    # Pollinations cannot supply videos
+    if desired_type == "video" and provider == "pollinations":
+        print(
+            f"    [gemini_director] Segment {part_idx}: "
+            "pollinations cannot supply videos – fetching image instead."
+        )
+        desired_type = "image"
+
+    # Validate provider; fall back to mode
+    if provider not in {"pollinations", "bing_scrape", "search_apis"}:
+        print(
+            f"    [gemini_director] Segment {part_idx}: unknown provider "
+            f"{provider!r} – falling back to mode={fallback_mode}."
+        )
+        provider = fallback_mode
+
+    saved = None
+
+    if desired_type == "video":
+        # Try video from the chosen provider
+        if provider == "bing_scrape":
+            saved = _fetch_bing_video_only(prompt_en, part_idx, media_dir)
+        elif provider == "search_apis":
+            saved = _fetch_search_apis_video_only(prompt_en, part_idx, media_dir)
+
+        if saved:
+            return saved
+        print(
+            f"    [gemini_director] Segment {part_idx}: video fetch failed – "
+            "falling back to image from the same provider."
+        )
+
+    # Image fetch (either requested directly or video-fallback)
+    if provider == "bing_scrape":
+        saved = _fetch_bing_image_only(prompt_en, part_idx, media_dir)
+    elif provider == "search_apis":
+        saved = _fetch_search_apis_image_only(prompt_en, part_idx, media_dir)
+    else:  # pollinations
+        dest = os.path.join(media_dir, f"part{part_idx}.jpg")
+        saved = dest if _fetch_pollinations(prompt_en, dest) else None
+
+    return saved
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Main entry point
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fetch_media_main(mode: str = "pollinations") -> None:
-    """
-    Read prompts from outputs/line_by_line.txt and download/generate media for
-    each line, saving results to outputs/media/part{i}.mp4 or part{i}.jpg.
+def fetch_media_main(
+    mode: str = "pollinations",
+    decisions: list[dict] | None = None,
+) -> None:
+    """Read prompts from outputs/line_by_line.txt and download/generate media.
 
-    Falls back to Pollinations image generation if the selected mode fails for
-    a specific part.
+    For each line the file is saved as outputs/media/part{i}.mp4 or .jpg.
+
+    When *decisions* is supplied (a list of per-segment Gemini decision dicts),
+    each segment uses the provider and type from its decision instead of the
+    global *mode*.  The global *mode* is still used as a fallback when a
+    decision is missing or when the decision's provider fails.
+
+    Falls back to Pollinations image generation for any part where all other
+    methods fail.
 
     Args:
-        mode: "pollinations" | "bing_scrape" | "search_apis"
+        mode:      "pollinations" | "bing_scrape" | "search_apis"
+        decisions: optional per-segment Gemini decisions
     """
     allowed_modes = {"pollinations", "bing_scrape", "search_apis"}
     if mode not in allowed_modes:
@@ -486,20 +600,20 @@ def fetch_media_main(mode: str = "pollinations") -> None:
         print(f"\n[Part {part}] {prompt[:70]}...")
 
         prompt_en = _translate_to_english(prompt)
-        saved = None
+        decision = decisions[part] if decisions and part < len(decisions) else None
 
-        if mode == "pollinations":
-            dest = os.path.join(media_dir, f"part{part}.jpg")
-            if _fetch_pollinations(prompt_en, dest):
-                saved = dest
+        if decision:
+            print(f"    [gemini_director] Using decision: {decision}")
 
-        elif mode == "bing_scrape":
-            saved = _fetch_bing_scrape(prompt_en, part, media_dir)
+        saved = _fetch_segment_with_decision(
+            part_idx=part,
+            prompt_en=prompt_en,
+            media_dir=media_dir,
+            fallback_mode=mode,
+            decision=decision,
+        )
 
-        elif mode == "search_apis":
-            saved = _fetch_search_apis(prompt_en, part, media_dir)
-
-        # Universal fallback: Pollinations image
+        # Universal last-resort fallback: Pollinations image
         if not saved:
             print(f"    Primary fetch failed – falling back to Pollinations...")
             dest = os.path.join(media_dir, f"part{part}.jpg")

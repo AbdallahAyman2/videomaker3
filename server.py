@@ -61,6 +61,7 @@ from starlette.responses import StreamingResponse
 
 from utils.gemini import query
 from utils.write_script import write_content, split_text_to_lines
+from utils.gemini_director import decide_all_segments
 from utils.media_fetch import fetch_media_main
 from utils.voice_gen import voice_main
 from utils.video_creation import video_main
@@ -246,24 +247,34 @@ def run_pipeline(topic: str, voice_id: str, media_mode: str = "pollinations"):
         split_text_to_lines()
         broadcast("6) حفظ line_by_line.txt.")
 
-        broadcast(f"7) جلب الوسائط (mode={media_mode})...")
-        fetch_media_main(mode=media_mode)
-        broadcast("8) الوسائط جاهزة.")
+        broadcast("7) استشارة Gemini لقرار الوسائط لكل جزء...")
+        line_file = os.path.join(os.getcwd(), "outputs", "line_by_line.txt")
+        with open(line_file, "r", encoding="utf-8") as _fh:
+            lines = [l.strip() for l in _fh if l.strip()]
+        decisions = decide_all_segments(
+            segments=lines,
+            script_context=content,
+        )
+        broadcast(f"8) تم توليد {len(decisions)} قرار وسائط من Gemini.")
 
-        broadcast("9) توليد الصوت...")
+        broadcast(f"9) جلب الوسائط (mode={media_mode})...")
+        fetch_media_main(mode=media_mode, decisions=decisions)
+        broadcast("10) الوسائط جاهزة.")
+
+        broadcast("11) توليد الصوت...")
         voice_main(voice_id=voice_id)
-        broadcast("10) الصوت جاهز.")
+        broadcast("12) الصوت جاهز.")
 
-        broadcast("11) إنشاء الفيديو...")
-        video_path = video_main()
-        broadcast("12) ✅ انتهى! يمكن تحميل الفيديو من /download")
+        broadcast("13) إنشاء الفيديو...")
+        video_path = video_main(decisions=decisions)
+        broadcast("14) ✅ انتهى! يمكن تحميل الفيديو من /download")
 
-        broadcast("13) إرسال الفيديو إلى تيليغرام...")
+        broadcast("15) إرسال الفيديو إلى تيليغرام...")
         ok = send_video_to_telegram(video_path, caption=f"🎬 {title}")
         if ok:
-            broadcast("14) ✅ تم إرسال الفيديو إلى تيليغرام.")
+            broadcast("16) ✅ تم إرسال الفيديو إلى تيليغرام.")
         else:
-            broadcast("14) ⚠️ لم يتم إرسال الفيديو إلى تيليغرام (تحقق من الإعدادات).")
+            broadcast("16) ⚠️ لم يتم إرسال الفيديو إلى تيليغرام (تحقق من الإعدادات).")
     except Exception as e:
         broadcast(f"❌ خطأ أثناء المعالجة: {e}")
 

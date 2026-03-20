@@ -43,6 +43,9 @@ for _name in (
     "moviepy.video",
     "moviepy.video.fx",
     "moviepy.video.fx.loop",
+    "moviepy.audio",
+    "moviepy.audio.fx",
+    "moviepy.audio.fx.all",
     "googletrans",
     "tqdm",
     "PIL",
@@ -87,12 +90,16 @@ class _FakeClip:
     duration = 1.0
     w = 1080
     h = 1920
+    audio = None
     def __init__(self, *a, **kw): pass
     def resize(self, *a, **kw): return self
     def set_audio(self, *a, **kw): return self
     def set_position(self, *a, **kw): return self
     def subclip(self, *a, **kw): return self
     def fx(self, *a, **kw): return self
+    def crop(self, *a, **kw): return self
+    def fadein(self, *a, **kw): return self
+    def volumex(self, *a, **kw): return self
     def close(self): pass
 
 _mpy_editor = sys.modules["moviepy.editor"]
@@ -101,10 +108,14 @@ _mpy_editor.VideoFileClip = _FakeClip  # type: ignore
 _mpy_editor.AudioFileClip = _FakeClip  # type: ignore
 _mpy_editor.ColorClip = _FakeClip  # type: ignore
 _mpy_editor.CompositeVideoClip = _FakeClip  # type: ignore
+_mpy_editor.CompositeAudioClip = _FakeClip  # type: ignore
 _mpy_editor.concatenate_videoclips = lambda clips, **kw: _FakeClip()  # type: ignore
 
 # moviepy.video.fx.loop stub
 sys.modules["moviepy.video.fx.loop"].loop = lambda clip, **kw: clip  # type: ignore
+
+# moviepy.audio.fx.all stub
+sys.modules["moviepy.audio.fx.all"].audio_loop = lambda clip, **kw: clip  # type: ignore
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -257,6 +268,200 @@ class TestServerEndpoints(unittest.TestCase):
     def test_download_404_when_no_video(self):
         resp = self.client.get("/download")
         self.assertEqual(resp.status_code, 404)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. gemini_director – JSON parsing and normalisation (no real Gemini calls)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestGeminiDirectorHelpers(unittest.TestCase):
+
+    def test_parse_clean_json(self):
+        from utils.gemini_director import _parse_gemini_json
+        result = _parse_gemini_json('{"type": "video", "duration": 3.5}')
+        self.assertEqual(result, {"type": "video", "duration": 3.5})
+
+    def test_parse_json_with_markdown_fence(self):
+        from utils.gemini_director import _parse_gemini_json
+        text = '```json\n{"type": "image", "effect": null}\n```'
+        result = _parse_gemini_json(text)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["type"], "image")
+
+    def test_parse_json_embedded_in_text(self):
+        from utils.gemini_director import _parse_gemini_json
+        text = 'Here is my decision: {"type": "video", "mute": true} done.'
+        result = _parse_gemini_json(text)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["type"], "video")
+
+    def test_parse_returns_none_on_garbage(self):
+        from utils.gemini_director import _parse_gemini_json
+        self.assertIsNone(_parse_gemini_json("no json here at all"))
+
+    def test_normalize_valid_decision(self):
+        from utils.gemini_director import _normalize
+        raw = {"type": "video", "provider": "bing_scrape", "duration": 4.0,
+               "mute": True, "effect": "zoom"}
+        result = _normalize(raw, segment_idx=0)
+        self.assertEqual(result["type"], "video")
+        self.assertEqual(result["provider"], "bing_scrape")
+        self.assertAlmostEqual(result["duration"], 4.0)
+        self.assertTrue(result["mute"])
+        self.assertEqual(result["effect"], "zoom")
+
+    def test_normalize_unknown_type_defaults_to_image(self):
+        from utils.gemini_director import _normalize
+        raw = {"type": "gif", "provider": "pollinations", "duration": 3.0}
+        result = _normalize(raw, segment_idx=1)
+        self.assertEqual(result["type"], "image")
+
+    def test_normalize_unknown_provider_defaults_to_pollinations(self):
+        from utils.gemini_director import _normalize
+        raw = {"type": "image", "provider": "youtube", "duration": 3.0}
+        result = _normalize(raw, segment_idx=2)
+        self.assertEqual(result["provider"], "pollinations")
+
+    def test_normalize_duration_clamped(self):
+        from utils.gemini_director import _normalize
+        raw = {"type": "image", "provider": "pollinations", "duration": 99.0}
+        result = _normalize(raw, segment_idx=3)
+        self.assertLessEqual(result["duration"], 15.0)
+
+    def test_normalize_duration_minimum(self):
+        from utils.gemini_director import _normalize
+        raw = {"type": "image", "provider": "pollinations", "duration": 0.1}
+        result = _normalize(raw, segment_idx=4)
+        self.assertGreaterEqual(result["duration"], 1.0)
+
+    def test_normalize_unknown_effect_becomes_none(self):
+        from utils.gemini_director import _normalize
+        raw = {"type": "image", "provider": "pollinations", "effect": "warp"}
+        result = _normalize(raw, segment_idx=5)
+        self.assertIsNone(result["effect"])
+
+    def test_decide_segment_uses_default_on_gemini_error(self):
+        """decide_segment falls back to defaults when Gemini query fails."""
+        from unittest.mock import patch
+        from utils.gemini_director import decide_segment, _DEFAULT_DECISION
+        with patch("utils.gemini_director.query", side_effect=RuntimeError("API down")):
+            result = decide_segment("some segment", "some context", segment_idx=0)
+        self.assertEqual(result, _DEFAULT_DECISION)
+
+    def test_decide_all_segments_returns_one_per_segment(self):
+        """decide_all_segments returns a list of length == len(segments)."""
+        from unittest.mock import patch
+        from utils.gemini_director import decide_all_segments, _DEFAULT_DECISION
+        import tempfile, json
+
+        segments = ["line one", "line two", "line three"]
+        with patch("utils.gemini_director.query", side_effect=RuntimeError("no key")):
+            with tempfile.TemporaryDirectory() as tmp:
+                orig_cwd = os.getcwd()
+                os.chdir(tmp)
+                os.makedirs("outputs", exist_ok=True)
+                try:
+                    decisions = decide_all_segments(segments, script_context="ctx")
+                finally:
+                    os.chdir(orig_cwd)
+        self.assertEqual(len(decisions), len(segments))
+        for d in decisions:
+            self.assertIn("type", d)
+            self.assertIn("provider", d)
+            self.assertIn("duration", d)
+            self.assertIn("mute", d)
+            self.assertIn("effect", d)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. media_fetch – per-segment decision dispatcher
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestMediaFetchDecisionDispatch(unittest.TestCase):
+
+    def test_fetch_segment_pollinations_type_image_uses_pollinations(self):
+        """When decision has type=image and provider=pollinations, _fetch_pollinations is called."""
+        from unittest.mock import patch
+        from utils.media_fetch import _fetch_segment_with_decision
+        import tempfile
+
+        decision = {"type": "image", "provider": "pollinations", "duration": 3.0,
+                    "mute": True, "effect": None}
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("utils.media_fetch._fetch_pollinations", return_value=True) as mock_poll:
+                result = _fetch_segment_with_decision(
+                    part_idx=0,
+                    prompt_en="test prompt",
+                    media_dir=tmp,
+                    fallback_mode="pollinations",
+                    decision=decision,
+                )
+            self.assertTrue(mock_poll.called)
+
+    def test_fetch_segment_video_provider_pollinations_downgrades_to_image(self):
+        """When type=video but provider=pollinations, must fetch image (pollinations can't do video)."""
+        from unittest.mock import patch
+        from utils.media_fetch import _fetch_segment_with_decision
+        import tempfile
+
+        decision = {"type": "video", "provider": "pollinations", "duration": 3.0,
+                    "mute": True, "effect": None}
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("utils.media_fetch._fetch_pollinations", return_value=True) as mock_poll:
+                _fetch_segment_with_decision(
+                    part_idx=0,
+                    prompt_en="test prompt",
+                    media_dir=tmp,
+                    fallback_mode="pollinations",
+                    decision=decision,
+                )
+            # Should fall through to pollinations image fetch (not video)
+            self.assertTrue(mock_poll.called)
+
+    def test_fetch_segment_none_decision_uses_mode(self):
+        """When decision is None, the global mode is used."""
+        from unittest.mock import patch
+        from utils.media_fetch import _fetch_segment_with_decision
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch("utils.media_fetch._fetch_pollinations", return_value=True) as mock_poll:
+                _fetch_segment_with_decision(
+                    part_idx=0,
+                    prompt_en="test prompt",
+                    media_dir=tmp,
+                    fallback_mode="pollinations",
+                    decision=None,
+                )
+            self.assertTrue(mock_poll.called)
+
+    def test_fetch_media_main_passes_decisions(self):
+        """fetch_media_main calls _fetch_segment_with_decision for each line."""
+        from unittest.mock import patch
+        from utils import media_fetch
+        import tempfile
+
+        decisions = [{"type": "image", "provider": "pollinations", "duration": 3.0,
+                      "mute": True, "effect": None}]
+        with tempfile.TemporaryDirectory() as tmp:
+            orig_cwd = os.getcwd()
+            os.chdir(tmp)
+            os.makedirs("outputs/media", exist_ok=True)
+            try:
+                with open("outputs/line_by_line.txt", "w") as fh:
+                    fh.write("line one\n")
+                with patch.object(media_fetch, "_fetch_segment_with_decision",
+                                  return_value=None) as mock_dispatch:
+                    with patch.object(media_fetch, "_fetch_pollinations", return_value=False):
+                        media_fetch.fetch_media_main(mode="pollinations", decisions=decisions)
+                self.assertTrue(mock_dispatch.called)
+                call_kwargs = mock_dispatch.call_args
+                self.assertEqual(call_kwargs.kwargs.get("decision") or
+                                 call_kwargs[1].get("decision") or
+                                 call_kwargs[0][4],  # positional arg index
+                                 decisions[0])
+            finally:
+                os.chdir(orig_cwd)
 
 
 if __name__ == "__main__":
