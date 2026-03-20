@@ -10,15 +10,13 @@ def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
-def load_api_key(key_file="voice_secret.txt"):
-    if not os.path.exists(key_file):
-        raise FileNotFoundError(
-            f"API key file '{key_file}' not found. Please create it and insert your ElevenLabs API key."
-        )
-    with open(key_file, "r", encoding="utf-8") as f:
-        key = f.read().strip()
+def load_api_key():
+    key = os.environ.get("ELEVENLABS_API_KEY", "")
     if not key:
-        raise ValueError("The API key is empty. Please check your voice_secret.txt file.")
+        raise RuntimeError(
+            "ELEVENLABS_API_KEY environment variable is not set. "
+            "Please add it as a secret named ELEVENLABS_API_KEY."
+        )
     return key
 
 def text_to_speech_file(
@@ -67,7 +65,7 @@ def voice_main(voice_id: str = "pNInz6obpgDQGcFmaJgB"):
     4) يحفظها في ./outputs/audio/part{i}.mp3
     """
     try:
-        api_key = load_api_key("voice_secret.txt")
+        api_key = load_api_key()
     except Exception as e:
         print(f"Error loading voice API key: {e}")
         return
