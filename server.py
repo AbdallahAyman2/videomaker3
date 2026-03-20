@@ -36,7 +36,8 @@ os.environ["IMAGEMAGICK_BINARY"] = imagemagick_path
 
 import moviepy.config as mpy_config
 mpy_config.FFMPEG_BINARY = ffmpeg_path
-mpy_config.IMAGEMAGICK_BINARY = imagemagick_path
+if hasattr(mpy_config, "IMAGEMAGICK_BINARY"):
+    mpy_config.IMAGEMAGICK_BINARY = imagemagick_path
 
 print("Using ffmpeg:", ffmpeg_path)
 print("Using ImageMagick:", imagemagick_path)
